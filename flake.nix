@@ -12,13 +12,13 @@
   outputs = { self, nixpkgs, flake-utils, wasm4, ... }:
     flake-utils.lib.eachDefaultSystem (
       system: let
-        name = "wasm4";
+        version = "2.5.4";
         pkgs = nixpkgs.legacyPackages.${system};
       in {
-        defaultPackage = self.packages.${system}.${name};
-        packages.${name} = pkgs.buildNpmPackage {
+        defaultPackage = self.packages.${system}.cli;
+        packages.cli = pkgs.buildNpmPackage {
           pname = "w4";
-          version = "2.5.4";
+          inherit version;
           src = "${wasm4}/cli";
           npmDepsHash = "sha256-40UZgS26MRIU62tl+BcRrLMQ7JewQ2OZ5YhrWetheCI=";
 
@@ -29,10 +29,59 @@
           buildPhase = ''
             npm install;
           '';
+
+          # move runtime assets
+          # prePatch = ''
+          #   cp ${wasm4}/runtimes/web/dist $out/lib/node_modules/wasm4/assets/runtime
+          # '';
+        };
+
+        packages.web-devtool = pkgs.buildNpmPackage {
+          pname = "wasm4-web-devtool";
+          inherit version;
+          src = "${wasm4}/devtools/web";
+          npmDepsHash = "sha256-GwYlRLXMqFMLWgbLHkWoOAxmspUf5/qbzgW9aTtCvtc=";
+
+          buildPhase = ''
+            npm install;
+          '';
+        };
+
+        packages.web-runtime = pkgs.buildNpmPackage {
+          pname = "wasm4-runtime";
+          inherit version;
+          src = "${wasm4}/runtimes/web";
+          npmDepsHash = "sha256-PfVdHxhaz+tsrbfY0xtQqpE7NAyCf88bGVPqLBAOzik=";
+
+          nativeBuildInputs = with pkgs; [ 
+            jq
+            self.packages.${system}.web-devtool 
+          ];
+
+          # remove prepare command which installs web-devtool
+          preConfigure = ''
+            # update dependencies to point to new directory
+            cat package.json | jq '.dependencies."@wasm4/web-devtools" = "file:node_modules/@wasm4/web-devtools"' > temp.txt
+            cat temp.txt
+            mv temp.txt package.json
+
+            sed -i '/prepare/d' package.json
+            #sed -i 's/..\/..\/devtools\/web/@wasm4/g' package-lock.json
+          '';
+
+          buildPhase = ''
+            #npm run prepare
+            npm install
+          '';
+
+          installPhase = ''
+            ls
+            cp -r dist $out
+          '';
         };
 
         devShells.default = pkgs.mkShell {
-          inherit name;
+          name = "wasm4";
           buildInputs = with pkgs; [
             nodejs
           ];
