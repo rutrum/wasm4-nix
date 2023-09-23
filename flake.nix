@@ -16,6 +16,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in {
         defaultPackage = self.packages.${system}.cli;
+
         packages.cli = pkgs.buildNpmPackage {
           pname = "w4";
           inherit version;
@@ -42,40 +43,103 @@
           src = "${wasm4}/devtools/web";
           npmDepsHash = "sha256-GwYlRLXMqFMLWgbLHkWoOAxmspUf5/qbzgW9aTtCvtc=";
 
-          buildPhase = ''
-            npm install;
-          '';
+          # dont remove dev dependencies
+          dontNpmPrune = true;
         };
 
-        packages.web-runtime = pkgs.buildNpmPackage {
+        packages.runtime = pkgs.buildNpmPackage {
           pname = "wasm4-runtime";
           inherit version;
+          #src = "${wasm4}";
+          #sourceRoot = "source/runtimes/web";
           src = "${wasm4}/runtimes/web";
-          npmDepsHash = "sha256-PfVdHxhaz+tsrbfY0xtQqpE7NAyCf88bGVPqLBAOzik=";
+          npmDepsHash = "sha256-NBxlHV0qPeCsQtAppk05g3b9SOHVEWS2JS7v1EEwQrY=";
+
+          npmInstallFlags = ["--loglevel=verbose"];
+        };
+
+        packages.web-runtime3 = pkgs.buildNpmPackage {
+          pname = "web-runtime3";
+          inherit version;
+          src = "${wasm4}";
+          sourceRoot = "${wasm4}/runtimes/web";
+          npmDepsHash = "sha256-NBxlHV0qPeCsQtAppk05g3b9SOHVEWS2JS7v1EEwQrY=";
+   
+          # nativeBuildInputs = [ self.packages.${system}.web-devtool ];
+
+          # postUnpack = ''
+          #   echo "POSTUNPACK PHASE"
+          # '';
+
+          # prePatch = ''
+          #   echo "PREPATCH PHASE"
+          # '';
+
+          # preConfigure = ''
+          #   echo "PRECONFIGURE PHASE"
+          #   # rimraf not found
+          #   # the ../../devtools/web folder is read only so dependencies cannot be installed
+          #   # chmod u+x devtools/web
+          # '';
+        };
+
+        packages.web-runtime = let 
+          web-devtool = self.packages.${system}.web-devtool;
+        in pkgs.buildNpmPackage {
+          pname = "wasm4-web-runtime";
+          inherit version;
+          #src = "${wasm4}/runtimes/web";
+          src = "${wasm4}";
+          sourceRoot = "source/runtimes/web";
+          # npmDepsHash = "sha256-PfVdHxhaz+tsrbfY0xtQqpE7NAyCf88bGVPqLBAOzik=";
+          npmDepsHash = "sha256-NBxlHV0qPeCsQtAppk05g3b9SOHVEWS2JS7v1EEwQrY=";
+          # npmDepsHash = "sha256-W4JlkB2FV7LHDMkpmjvoHRWGlRGSKT81OTsxaGLGg38=";
 
           nativeBuildInputs = with pkgs; [ 
             jq
-            self.packages.${system}.web-devtool 
+            fd
+            web-devtool
           ];
+
+          # dontPatch = true;
+          
+          prePatch = ''
+            echo "PREPATCH"
+            #sed -i '/prepare/d' package.json
+            #sed -i 's/..\/..\/devtools\/web/@wasm4/g' package-lock.json
+            #cat package-lock.json | jq '.dependencies."@wasm4/web-devtools" = "file:node_modules/@wasm4/web-devtools"' > temp.txt
+            #mv temp.txt package.json
+            #sed -i "s/import('@wasm4/import('\/node_modules\/@wasm4/" src/ui/app.ts
+          '';
 
           # remove prepare command which installs web-devtool
           preConfigure = ''
+            echo "PRECONFIGURE";
             # update dependencies to point to new directory
-            cat package.json | jq '.dependencies."@wasm4/web-devtools" = "file:node_modules/@wasm4/web-devtools"' > temp.txt
-            cat temp.txt
-            mv temp.txt package.json
 
-            sed -i '/prepare/d' package.json
-            #sed -i 's/..\/..\/devtools\/web/@wasm4/g' package-lock.json
+            # npm list
+
+
+            # echo "PREPARE"
+            # chmod 755 ../../devtools/web
+            # ls -l ../../devtools
+            # npm run prepare
+            npm ci
           '';
+          NODE_OPTIONS = "--openssl-legacy-provider";
 
           buildPhase = ''
-            #npm run prepare
-            npm install
+            runHook preBuild
+            echo "BUILD"
+            npm run build
+            runHook postBuild
           '';
+
+          # dontNpmBuild = true;
 
           installPhase = ''
             ls
+            npm install
             cp -r dist $out
           '';
         };
