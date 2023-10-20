@@ -45,110 +45,125 @@
 
           # dont remove dev dependencies
           dontNpmPrune = true;
+
+          postInstall = ''
+            # also make dev dependencies available
+            mv node_modules/* $out/lib/node_modules
+          '';
         };
 
-        packages.runtime = pkgs.buildNpmPackage {
-          pname = "wasm4-runtime";
-          inherit version;
-          #src = "${wasm4}";
-          #sourceRoot = "source/runtimes/web";
-          src = "${wasm4}/runtimes/web";
-          npmDepsHash = "sha256-NBxlHV0qPeCsQtAppk05g3b9SOHVEWS2JS7v1EEwQrY=";
-
-          npmInstallFlags = ["--loglevel=verbose"];
-        };
-
-        packages.web-runtime3 = pkgs.buildNpmPackage {
-          pname = "web-runtime3";
-          inherit version;
-          src = "${wasm4}";
-          sourceRoot = "${wasm4}/runtimes/web";
-          npmDepsHash = "sha256-NBxlHV0qPeCsQtAppk05g3b9SOHVEWS2JS7v1EEwQrY=";
-   
-          # nativeBuildInputs = [ self.packages.${system}.web-devtool ];
-
-          # postUnpack = ''
-          #   echo "POSTUNPACK PHASE"
-          # '';
-
-          # prePatch = ''
-          #   echo "PREPATCH PHASE"
-          # '';
-
-          # preConfigure = ''
-          #   echo "PRECONFIGURE PHASE"
-          #   # rimraf not found
-          #   # the ../../devtools/web folder is read only so dependencies cannot be installed
-          #   # chmod u+x devtools/web
-          # '';
-        };
-
-        packages.web-runtime = let 
+        packages.runtime = let 
           web-devtool = self.packages.${system}.web-devtool;
         in pkgs.buildNpmPackage {
-          pname = "wasm4-web-runtime";
+          pname = "wasm4-runtime";
           inherit version;
-          #src = "${wasm4}/runtimes/web";
+
           src = "${wasm4}";
           sourceRoot = "source/runtimes/web";
-          # npmDepsHash = "sha256-PfVdHxhaz+tsrbfY0xtQqpE7NAyCf88bGVPqLBAOzik=";
-          npmDepsHash = "sha256-NBxlHV0qPeCsQtAppk05g3b9SOHVEWS2JS7v1EEwQrY=";
-          # npmDepsHash = "sha256-W4JlkB2FV7LHDMkpmjvoHRWGlRGSKT81OTsxaGLGg38=";
+
+          # with patch
+          npmDepsHash = "sha256-Uswixjk5toTPCSaeKBZrND0Mqx35CBhMX5PHegeCJ9o=";
 
           nativeBuildInputs = with pkgs; [ 
-            jq
-            fd
             web-devtool
           ];
 
-          # dontPatch = true;
-          
-          prePatch = ''
-            echo "PREPATCH"
-            #sed -i '/prepare/d' package.json
-            #sed -i 's/..\/..\/devtools\/web/@wasm4/g' package-lock.json
-            #cat package-lock.json | jq '.dependencies."@wasm4/web-devtools" = "file:node_modules/@wasm4/web-devtools"' > temp.txt
-            #mv temp.txt package.json
-            #sed -i "s/import('@wasm4/import('\/node_modules\/@wasm4/" src/ui/app.ts
-          '';
-
-          # remove prepare command which installs web-devtool
-          preConfigure = ''
-            echo "PRECONFIGURE";
-            # update dependencies to point to new directory
-
-            # npm list
-
-
-            # echo "PREPARE"
-            # chmod 755 ../../devtools/web
-            # ls -l ../../devtools
-            # npm run prepare
-            npm ci
-          '';
-          NODE_OPTIONS = "--openssl-legacy-provider";
-
-          buildPhase = ''
-            runHook preBuild
-            echo "BUILD"
-            npm run build
-            runHook postBuild
-          '';
-
-          # dontNpmBuild = true;
-
-          installPhase = ''
-            ls
-            npm install
-            cp -r dist $out
+          patches = [ ./runtime.patch ]; # applied at sourceRoot
+          postPatch = ''
+            substituteInPlace package-lock.json package.json --subst-var-by web-devtool "${web-devtool}"
           '';
         };
 
-        devShells.default = pkgs.mkShell {
-          name = "wasm4";
-          buildInputs = with pkgs; [
-            nodejs
-          ];
-        };
+        # packages.web-runtime3 = pkgs.buildNpmPackage {
+        #   pname = "web-runtime3";
+        #   inherit version;
+        #   src = "${wasm4}";
+        #   sourceRoot = "${wasm4}/runtimes/web";
+        #   npmDepsHash = "sha256-NBxlHV0qPeCsQtAppk05g3b9SOHVEWS2JS7v1EEwQrY=";
+        #   # makeCacheWritable = true;
+   
+        #   # nativeBuildInputs = [ self.packages.${system}.web-devtool ];
+
+        #   # postUnpack = ''
+        #   #   echo "POSTUNPACK PHASE"
+        #   # '';
+
+        #   # prePatch = ''
+        #   #   echo "PREPATCH PHASE"
+        #   # '';
+
+        #   # preConfigure = ''
+        #   #   echo "PRECONFIGURE PHASE"
+        #   #   # rimraf not found
+        #   #   # the ../../devtools/web folder is read only so dependencies cannot be installed
+        #   #   # chmod u+x devtools/web
+        #   # '';
+        # };
+
+        # packages.web-runtime = let 
+        #   web-devtool = self.packages.${system}.web-devtool;
+        # in pkgs.buildNpmPackage {
+        #   pname = "wasm4-web-runtime";
+        #   inherit version;
+        #   #src = "${wasm4}/runtimes/web";
+        #   src = "${wasm4}";
+        #   sourceRoot = "source/runtimes/web";
+        #   npmDepsHash = "sha256-PfVdHxhaz+tsrbfY0xtQqpE7NAyCf88bGVPqLBAOzik=";
+
+        #   nativeBuildInputs = with pkgs; [ 
+        #     jq
+        #     fd
+        #     web-devtool
+        #   ];
+
+        #   # dontPatch = true;
+        #   
+        #   prePatch = ''
+        #     echo "PREPATCH"
+        #     #sed -i '/prepare/d' package.json
+        #     #sed -i 's/..\/..\/devtools\/web/@wasm4/g' package-lock.json
+        #     #cat package-lock.json | jq '.dependencies."@wasm4/web-devtools" = "file:node_modules/@wasm4/web-devtools"' > temp.txt
+        #     #mv temp.txt package.json
+        #     #sed -i "s/import('@wasm4/import('\/node_modules\/@wasm4/" src/ui/app.ts
+        #   '';
+
+        #   # remove prepare command which installs web-devtool
+        #   preConfigure = ''
+        #     echo "PRECONFIGURE";
+        #     # update dependencies to point to new directory
+
+        #     # npm list
+
+
+        #     # echo "PREPARE"
+        #     # chmod 755 ../../devtools/web
+        #     # ls -l ../../devtools
+        #     # npm run prepare
+        #     npm ci
+        #   '';
+        #   NODE_OPTIONS = "--openssl-legacy-provider";
+
+        #   buildPhase = ''
+        #     runHook preBuild
+        #     echo "BUILD"
+        #     npm run build
+        #     runHook postBuild
+        #   '';
+
+        #   # dontNpmBuild = true;
+
+        #   installPhase = ''
+        #     ls
+        #     npm install
+        #     cp -r dist $out
+        #   '';
+        # };
+
+        # devShells.default = pkgs.mkShell {
+        #   name = "wasm4";
+        #   buildInputs = with pkgs; [
+        #     nodejs
+        #   ];
+        # };
       });
 }
