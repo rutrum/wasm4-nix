@@ -1,5 +1,7 @@
 # wasm4-nix: A nix-flake for wasm4 fantasy console
 
+This currently packages just the binary, and doesn't work for running natively yet (need to link libraries or something.)
+
 WIP.
 
 I was able to package the web-devtool directory and the `w4` cli itself, but was unsuccessful in packaging the wasm4 runtime needed to run the carts.  The issue is that the web-devtools dependency is references with a relative link that looks up from runtimes/web directory like so:

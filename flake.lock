@@ -20,11 +20,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1695145219,
-        "narHash": "sha256-Eoe9IHbvmo5wEDeJXKFOpKUwxYJIOxKUesounVccNYk=",
+        "lastModified": 1699099776,
+        "narHash": "sha256-X09iKJ27mGsGambGfkKzqvw5esP1L/Rf8H3u3fCqIiU=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "5ba549eafcf3e33405e5f66decd1a72356632b96",
+        "rev": "85f1ba3e51676fa8cc604a3d863d729026a6b8eb",
         "type": "github"
       },
       "original": {
@@ -38,7 +38,7 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
-        "wasm4": "wasm4"
+        "wasm4-bin": "wasm4-bin"
       }
     },
     "systems": {
@@ -56,21 +56,16 @@
         "type": "github"
       }
     },
-    "wasm4": {
+    "wasm4-bin": {
       "flake": false,
       "locked": {
-        "lastModified": 1673201175,
-        "narHash": "sha256-1F6uBbbaxo5wESecRK/duGeDUu3FH1Co4Y5E4rn9lnk=",
-        "owner": "aduros",
-        "repo": "wasm4",
-        "rev": "1e71741c3a78f324b2d7283f32f4ce16ad2554c5",
-        "type": "github"
+        "narHash": "sha256-mclayWHdkMBV/aeEDDB3AuKxzjU8MGXRHVaTE3xpv6M=",
+        "type": "file",
+        "url": "https://github.com/aduros/wasm4/releases/download/v2.6.0/w4-linux.zip"
       },
       "original": {
-        "owner": "aduros",
-        "ref": "v2.5.4",
-        "repo": "wasm4",
-        "type": "github"
+        "type": "file",
+        "url": "https://github.com/aduros/wasm4/releases/download/v2.6.0/w4-linux.zip"
       }
     }
   },
