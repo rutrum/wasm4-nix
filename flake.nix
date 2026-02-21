@@ -170,7 +170,7 @@
       in {
         packages = {
           default = wasm4;
-          inherit wasm4 w4 web-runtime devtools;
+          inherit wasm4 w4;
         };
       }
     );
