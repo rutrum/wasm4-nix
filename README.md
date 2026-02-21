@@ -1,16 +1,48 @@
-# wasm4-nix: A nix-flake for wasm4 fantasy console
+# wasm4-nix
 
-This currently packages just the binary, and doesn't work for running natively yet (need to link libraries or something.)
+Nix flake for [wasm4](https://wasm4.org), a WebAssembly fantasy console.
 
-WIP.
+## Running
 
-I was able to package the web-devtool directory and the `w4` cli itself, but was unsuccessful in packaging the wasm4 runtime needed to run the carts.  The issue is that the web-devtools dependency is references with a relative link that looks up from runtimes/web directory like so:
+Play a cart:
 
+```sh
+nix run github:rutrum/wasm4-nix -- game.wasm
 ```
-wasm4/runtimes/web $ rg @wasm4 package.json
-19:    "@wasm4/web-devtools": "file:../../devtools/web"
+
+Or add to your environment:
+
+```nix
+environment.systemPackages = [
+  wasm4-nix.packages.${system}.wasm4
+];
 ```
 
-I'm unsure how to build this given this contraint.  `buildNpmPackage` from nixpkgs will download the npm dependencies for me but won't look outside the `runtimes/web` folder for additional files (understandably).  I'm not sure how to build this from the root directory itself either.
+## Development
 
-You should make a PR if you have any ideas.  I'll have to return to this when I become more familiar with derivations.
+Add to your `flake.nix`:
+
+```nix
+{
+  inputs.wasm4-nix.url = "github:rutrum/wasm4-nix";
+}
+```
+
+Add `w4` to a dev shell:
+
+```nix
+devShells.default = pkgs.mkShell {
+  buildInputs = [
+    wasm4-nix.packages.${system}.w4
+  ];
+};
+```
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| `wasm4` (default) | Native runtime for playing carts |
+| `w4` | CLI for development: watch, bundle, png2src |
+| `web-runtime` | Web runtime assets (used internally for w4) |
+| `devtools` | Browser developer tools (used internally for w4) |

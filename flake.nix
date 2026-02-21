@@ -29,7 +29,7 @@
         srcWithSubmodules = wasm4-src-full;
 
         # Stage 1: Build devtools (no local dependencies)
-        wasm4-devtools = pkgs.buildNpmPackage {
+        devtools = pkgs.buildNpmPackage {
           pname = "wasm4-devtools";
           inherit version;
           src = "${src}/devtools/web";
@@ -49,9 +49,9 @@
           '';
         };
 
-        # Stage 2: Build runtime - use full source for path resolution
-        wasm4-runtime = pkgs.buildNpmPackage {
-          pname = "wasm4-runtime";
+        # Stage 2: Build web runtime - use full source for path resolution
+        web-runtime = pkgs.buildNpmPackage {
+          pname = "wasm4-web-runtime";
           inherit version src;
 
           # Build from runtimes/web subdir but keep full source for relative imports
@@ -72,7 +72,7 @@
           preBuild = ''
             # Link the pre-built devtools into node_modules
             mkdir -p node_modules/@wasm4
-            ln -s ${wasm4-devtools} node_modules/@wasm4/web-devtools
+            ln -s ${devtools} node_modules/@wasm4/web-devtools
           '';
 
           installPhase = ''
@@ -83,9 +83,9 @@
           '';
         };
 
-        # Native runtime (Linux) - C/C++ wasm4 executable
-        wasm4-native-linux = pkgs.stdenv.mkDerivation {
-          pname = "wasm4-native";
+        # Native runtime - C/C++ wasm4 executable
+        wasm4 = pkgs.stdenv.mkDerivation {
+          pname = "wasm4";
           inherit version;
           src = srcWithSubmodules;
 
@@ -120,15 +120,17 @@
             mkdir -p $out/bin $out/libexec
             cp wasm4 $out/libexec/wasm4-unwrapped
             # Wrap with audio library paths for cubeb dlopen
-            makeWrapper $out/libexec/wasm4-unwrapped $out/bin/wasm4-linux \
+            makeWrapper $out/libexec/wasm4-unwrapped $out/bin/wasm4 \
               --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [ pkgs.alsa-lib pkgs.libpulseaudio ]}"
             runHook postInstall
           '';
+
+          meta.mainProgram = "wasm4";
         };
 
         # Stage 3: Build CLI (needs runtime assets)
-        wasm4 = pkgs.buildNpmPackage {
-          pname = "wasm4";
+        w4 = pkgs.buildNpmPackage {
+          pname = "w4";
           inherit version;
           src = "${src}/cli";
 
@@ -138,14 +140,14 @@
           dontNpmBuild = true;
 
           postPatch = ''
-            # Remove the runtime symlink and copy built runtime
+            # Remove the runtime symlink and copy built web runtime
             rm -rf assets/runtime || true
             mkdir -p assets/runtime
-            cp -r ${wasm4-runtime}/* assets/runtime/
+            cp -r ${web-runtime}/* assets/runtime/
 
             # Add native runtime for Linux
             mkdir -p assets/natives
-            cp ${wasm4-native-linux}/bin/wasm4-linux assets/natives/
+            cp ${wasm4}/bin/wasm4 assets/natives/wasm4-linux
           '';
 
           installPhase = ''
@@ -168,12 +170,7 @@
       in {
         packages = {
           default = wasm4;
-          inherit wasm4 wasm4-runtime wasm4-devtools wasm4-native-linux;
-
-          # Convenience aliases
-          devtools = wasm4-devtools;
-          runtime = wasm4-runtime;
-          native-linux = wasm4-native-linux;
+          inherit wasm4 w4 web-runtime devtools;
         };
       }
     );
