@@ -37,7 +37,9 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "wasm4-src": "wasm4-src",
+        "wasm4-src-full": "wasm4-src-full"
       }
     },
     "systems": {
@@ -53,6 +55,42 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
+      }
+    },
+    "wasm4-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1734062069,
+        "narHash": "sha256-QZtPqq92SXmH5DbyTgyHK+GG2TZglRpTKyX2tCd2xd8=",
+        "owner": "aduros",
+        "repo": "wasm4",
+        "rev": "92490f261659921d8b724f10b5b842cdf5a0a1bb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aduros",
+        "ref": "v2.7.1",
+        "repo": "wasm4",
+        "type": "github"
+      }
+    },
+    "wasm4-src-full": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1734062069,
+        "narHash": "sha256-QmSqQh+8w8pxoQcgHrsTfv/lIb5Xh7LkATnSMDUwjKo=",
+        "ref": "refs/tags/v2.7.1",
+        "rev": "92490f261659921d8b724f10b5b842cdf5a0a1bb",
+        "revCount": 1738,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/aduros/wasm4"
+      },
+      "original": {
+        "ref": "refs/tags/v2.7.1",
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/aduros/wasm4"
       }
     }
   },

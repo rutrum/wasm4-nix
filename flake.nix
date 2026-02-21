@@ -4,20 +4,29 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+
+    # WASM-4 source (without submodules - for npm packages)
+    wasm4-src = {
+      url = "github:aduros/wasm4/v2.7.1";
+      flake = false;
+    };
+
+    # WASM-4 source with submodules - for native runtime
+    wasm4-src-full = {
+      url = "git+https://github.com/aduros/wasm4?ref=refs/tags/v2.7.1&submodules=1";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, wasm4-src, wasm4-src-full }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         version = "2.7.1";
 
-        src = pkgs.fetchFromGitHub {
-          owner = "aduros";
-          repo = "wasm4";
-          rev = "v${version}";
-          hash = "sha256-QZtPqq92SXmH5DbyTgyHK+GG2TZglRpTKyX2tCd2xd8=";
-        };
+        # Use flake inputs for source
+        src = wasm4-src;
+        srcWithSubmodules = wasm4-src-full;
 
         # Stage 1: Build devtools (no local dependencies)
         wasm4-devtools = pkgs.buildNpmPackage {
@@ -74,6 +83,49 @@
           '';
         };
 
+        # Native runtime (Linux) - C/C++ wasm4 executable
+        wasm4-native-linux = pkgs.stdenv.mkDerivation {
+          pname = "wasm4-native";
+          inherit version;
+          src = srcWithSubmodules;
+
+          sourceRoot = "source/runtimes/native";
+
+          nativeBuildInputs = [
+            pkgs.cmake
+            pkgs.pkg-config
+            pkgs.autoPatchelfHook
+            pkgs.makeWrapper
+          ];
+
+          buildInputs = [
+            # For minifb windowing
+            pkgs.xorg.libX11
+            pkgs.xorg.libXcursor
+            pkgs.xorg.libXrandr
+            pkgs.xorg.libXinerama
+            pkgs.xorg.libXi
+            pkgs.libxkbcommon
+            # For cubeb audio
+            pkgs.alsa-lib
+            pkgs.libpulseaudio
+          ];
+
+          cmakeFlags = [
+            "-DCMAKE_BUILD_TYPE=Release"
+          ];
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/bin $out/libexec
+            cp wasm4 $out/libexec/wasm4-unwrapped
+            # Wrap with audio library paths for cubeb dlopen
+            makeWrapper $out/libexec/wasm4-unwrapped $out/bin/wasm4-linux \
+              --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [ pkgs.alsa-lib pkgs.libpulseaudio ]}"
+            runHook postInstall
+          '';
+        };
+
         # Stage 3: Build CLI (needs runtime assets)
         wasm4 = pkgs.buildNpmPackage {
           pname = "wasm4";
@@ -90,6 +142,10 @@
             rm -rf assets/runtime || true
             mkdir -p assets/runtime
             cp -r ${wasm4-runtime}/* assets/runtime/
+
+            # Add native runtime for Linux
+            mkdir -p assets/natives
+            cp ${wasm4-native-linux}/bin/wasm4-linux assets/natives/
           '';
 
           installPhase = ''
@@ -112,11 +168,12 @@
       in {
         packages = {
           default = wasm4;
-          inherit wasm4 wasm4-runtime wasm4-devtools;
+          inherit wasm4 wasm4-runtime wasm4-devtools wasm4-native-linux;
 
           # Convenience aliases
           devtools = wasm4-devtools;
           runtime = wasm4-runtime;
+          native-linux = wasm4-native-linux;
         };
       }
     );
