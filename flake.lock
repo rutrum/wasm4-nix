@@ -37,8 +37,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs",
-        "wasm4-bin": "wasm4-bin"
+        "nixpkgs": "nixpkgs"
       }
     },
     "systems": {
@@ -54,18 +53,6 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
-      }
-    },
-    "wasm4-bin": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-mclayWHdkMBV/aeEDDB3AuKxzjU8MGXRHVaTE3xpv6M=",
-        "type": "file",
-        "url": "https://github.com/aduros/wasm4/releases/download/v2.6.0/w4-linux.zip"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://github.com/aduros/wasm4/releases/download/v2.6.0/w4-linux.zip"
       }
     }
   },
